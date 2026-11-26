@@ -1,0 +1,13 @@
+{
+  "name": "%APP_NAME%",
+  "short_name": "%APP_NAME%",
+  "description": "Send files and text to any device with a QR code or a 6-digit code. No sign-up.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f7fb",
+  "theme_color": "#4f46e5",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

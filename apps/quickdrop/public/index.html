@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>%APP_NAME% · Send files instantly with a QR code or a 6-digit code</title>
+  <meta name="description" content="Free, instant file and text transfer between any devices. No sign-up. Scan a QR code or type a six-digit code. End-to-end encrypted.">
+  <meta name="theme-color" content="#4f46e5" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0c0d12" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light dark">
+  <meta property="og:title" content="%APP_NAME% · Instant file transfer">
+  <meta property="og:description" content="Send files and text to any device with a QR code or a 6-digit code. No sign-up.">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon.svg">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/js/main.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#app">Skip to content</a>
+  <header class="topbar">
+    <a href="/" class="brand" data-link aria-label="%APP_NAME% home">
+      <img class="brand-mark" src="/icon.svg" alt="" width="30" height="30">
+      <span class="brand-name" data-app-name>%APP_NAME%</span>
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="/" data-link data-nav="send">Send</a>
+      <a href="/receive" data-link data-nav="receive">Receive</a>
+      <a href="/account" data-link data-nav="account" id="nav-account">Sign in</a>
+    </nav>
+  </header>
+
+  <main id="app" tabindex="-1">
+    <div class="boot" aria-busy="true"><span class="spinner" aria-hidden="true"></span></div>
+  </main>
+
+  <footer class="footer">
+    <p>
+      <strong data-app-name>%APP_NAME%</strong> is free. No sign-up, no tracking.
+      Files are encrypted on your device before they leave it.
+    </p>
+  </footer>
+
+  <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+  <noscript><p class="noscript">%APP_NAME% needs JavaScript to encrypt your files in the browser.</p></noscript>
+</body>
+</html>

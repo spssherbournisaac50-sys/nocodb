@@ -1,0 +1,34 @@
+# Production-style setup: QuickDrop behind Caddy, which gets a free HTTPS
+# certificate automatically. HTTPS is required: browsers only allow in-page
+# encryption and camera access on secure origins.
+#
+#   DOMAIN=drop.example.com docker compose up -d
+#
+services:
+  quickdrop:
+    build: .
+    restart: unless-stopped
+    environment:
+      TRUST_PROXY: "true"
+      # APP_NAME: "QuickDrop"
+      # TURN_URLS: "turn:turn.example.com:3478"
+      # TURN_USERNAME: "user"
+      # TURN_CREDENTIAL: "secret"
+    volumes:
+      - quickdrop-data:/data
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - quickdrop
+    ports:
+      - "80:80"
+      - "443:443"
+    command: caddy reverse-proxy --from ${DOMAIN:-localhost} --to quickdrop:3000
+    volumes:
+      - caddy-data:/data
+
+volumes:
+  quickdrop-data:
+  caddy-data:

@@ -1,0 +1,28 @@
+name: QuickDrop
+
+on:
+  push:
+    paths:
+      - "apps/quickdrop/**"
+      - ".github/workflows/quickdrop.yml"
+  pull_request:
+    paths:
+      - "apps/quickdrop/**"
+      - ".github/workflows/quickdrop.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/quickdrop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts
+      - run: npm test
