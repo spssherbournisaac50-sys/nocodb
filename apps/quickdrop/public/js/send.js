@@ -102,6 +102,8 @@ function transferTitle(files, text) {
 
 export function renderSend(root, app) {
   const limits = app.config.limits;
+  // Hosts can turn off stored uploads (ANON_MAX_GB=0); files then always go Live.
+  const uploadAllowed = limits.maxBytes > 0;
   const state = {
     files: [],
     text: '',
@@ -222,6 +224,7 @@ export function renderSend(root, app) {
     expiryField,
     h('label', { class: 'field-inline' }, h('span', null, 'Can be received'), downloadsSelect),
   );
+  modeGroup.hidden = !uploadAllowed;
   const modeBlock = h('div', { class: 'mode-block' }, h('div', { class: 'label' }, 'Delivery'), modeGroup, modeDesc, options);
 
   const warning = h('p', { class: 'inline-warning', role: 'alert', hidden: true });
@@ -648,6 +651,7 @@ export function renderSend(root, app) {
         expired: ['error', 'This transfer has expired', s.mode === 'direct' ? 'The live session ended.' : 'The files were deleted from the server.'],
         revoked: ['error', 'Transfer cancelled', 'The QR code, link and code no longer work.'],
         replaced: ['error', 'Opened in another tab', 'This transfer is now being sent from another tab.'],
+        lost: ['error', 'This transfer was reset', 'The server restarted, so this code no longer works. Send again to get a new one.'],
       };
       const [kind, title, sub] = messages[status] || messages.expired;
       setStatus(kind, title, sub);
@@ -722,6 +726,10 @@ export function renderSend(root, app) {
           const closed = sig.once('close');
           sig.send({ t: 'host', id: s.id, token: s.manageToken });
           const reply = await Promise.race([sig.once('hosted', 'error', 'event'), closed]);
+          if (reply?.t === 'error' && reply.code === 'forbidden') {
+            finish('lost');
+            return;
+          }
           if (reply?.t === 'hosted') {
             if (!first) log('Reconnected');
             first = false;
@@ -952,6 +960,8 @@ function infoSections(app) {
     h('li', { class: 'feature' }, h('span', { class: 'feature-icon' }, icon(iconName)), h('div', null, h('h3', null, title), h('p', null, text)));
   const faq = (q, a) => h('details', { class: 'faq-item' }, h('summary', null, q), h('p', null, a));
   const plans = app.config.plans;
+  const accounts = app.config.accountsEnabled;
+  const uploads = app.config.limits.maxBytes > 0;
 
   return h(
     'div',
@@ -975,8 +985,16 @@ function infoSections(app) {
         'ul',
         { class: 'feature-grid' },
         feature('lock', 'End-to-end encrypted', 'Files are encrypted on your device. The key travels inside the QR code and link, never to our server.'),
-        feature('user', 'No sign-up', 'No account, email or phone number needed. An optional free account adds bigger limits.'),
-        feature('zap', 'Live or upload', 'Live goes straight from device to device with no size limit. Upload lets them grab it later.'),
+        feature(
+          'user',
+          'No sign-up',
+          accounts
+            ? 'No account, email or phone number needed. An optional free account adds bigger limits.'
+            : 'No account, email or phone number needed. Just open the page and send.',
+        ),
+        uploads
+          ? feature('zap', 'Live or upload', 'Live goes straight from device to device with no size limit. Upload lets them grab it later.')
+          : feature('zap', 'Direct & unlimited', 'Files go straight from device to device, with no size limit and nothing stored on a server.'),
         feature('globe', 'Any device, anywhere', 'Phone, tablet or computer, on any network around the world. Just a browser.'),
       ),
     ),
@@ -984,10 +1002,19 @@ function infoSections(app) {
       'section',
       { class: 'faq', 'aria-labelledby': 'faq-title' },
       h('h2', { id: 'faq-title', class: 'section-title' }, 'Questions'),
-      faq('Is it really free?', 'Yes. Sending and receiving is free with no sign-up. An optional free account raises the limits.'),
+      faq(
+        'Is it really free?',
+        accounts
+          ? 'Yes. Sending and receiving is free with no sign-up. An optional free account raises the limits.'
+          : 'Yes. Sending and receiving is free, with no sign-up.',
+      ),
       faq(
         'How big can files be?',
-        `Live transfers have no size limit, because files go straight between the devices. Upload mode holds up to ${formatBytes(plans.anonymous.maxBytes)} for ${plans.anonymous.maxHours} hours, or ${formatBytes(plans.account.maxBytes)} for up to ${Math.round(plans.account.maxHours / 24)} days with an account.`,
+        !uploads
+          ? 'There is no size limit, because files go straight from one device to the other.'
+          : accounts
+            ? `Live transfers have no size limit, because files go straight between the devices. Upload mode holds up to ${formatBytes(plans.anonymous.maxBytes)} for ${plans.anonymous.maxHours} hours, or ${formatBytes(plans.account.maxBytes)} for up to ${Math.round(plans.account.maxHours / 24)} days with an account.`
+            : `Live transfers have no size limit, because files go straight between the devices. Upload mode holds up to ${formatBytes(plans.anonymous.maxBytes)} for ${plans.anonymous.maxHours} hours.`,
       ),
       faq(
         'Who can see my files?',
@@ -999,7 +1026,9 @@ function infoSections(app) {
       ),
       faq(
         'Do both devices need to be online?',
-        'For Live transfers, yes: keep the page open until the other device has received everything. With Upload mode you can close the page after the upload finishes.',
+        uploads
+          ? 'For Live transfers, yes: keep the page open until the other device has received everything. With Upload mode you can close the page after the upload finishes.'
+          : 'Yes. Files go straight from one device to the other, so keep the page open until the other device has received everything. Text messages can be picked up later.',
       ),
     ),
   );

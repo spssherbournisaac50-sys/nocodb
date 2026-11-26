@@ -49,6 +49,7 @@ export async function createApp(config) {
   const handleStatic = createStaticHandler(PUBLIC_DIR, config.appName);
 
   function currentUser(req) {
+    if (!config.accountsEnabled) return null;
     const token = parseCookies(req.headers.cookie)[SESSION_COOKIE];
     return token ? auth.userForToken(token) : null;
   }
@@ -57,6 +58,10 @@ export async function createApp(config) {
     const parts = [`${SESSION_COOKIE}=${token}`, 'Path=/', 'HttpOnly', 'SameSite=Lax', `Max-Age=${maxAge}`];
     if (isSecureRequest(req, config.trustProxy)) parts.push('Secure');
     return parts.join('; ');
+  }
+
+  function requireAccounts() {
+    if (!config.accountsEnabled) throw new HttpError(404, 'accounts_disabled', 'Accounts are not available on this server');
   }
 
   function rateLimit(limiter, key) {
@@ -70,7 +75,8 @@ export async function createApp(config) {
   function publicConfig(user) {
     return {
       appName: config.appName,
-      signupEnabled: config.signupEnabled,
+      accountsEnabled: config.accountsEnabled,
+      signupEnabled: config.accountsEnabled && config.signupEnabled,
       relayEnabled: config.relayEnabled,
       iceServers: config.iceServers,
       codeTtlMinutes: config.codeTtlMinutes,
@@ -149,6 +155,7 @@ export async function createApp(config) {
     }],
 
     ['POST', /^\/api\/auth\/signup$/, async (req, res, m, ctx) => {
+      requireAccounts();
       if (!config.signupEnabled) throw new HttpError(403, 'signup_disabled', 'Sign-ups are disabled');
       rateLimit(limits.auth, ctx.ip);
       const body = await readJson(req);
@@ -158,6 +165,7 @@ export async function createApp(config) {
     }],
 
     ['POST', /^\/api\/auth\/login$/, async (req, res, m, ctx) => {
+      requireAccounts();
       rateLimit(limits.auth, ctx.ip);
       const body = await readJson(req);
       const user = await auth.login(body.email, body.password);

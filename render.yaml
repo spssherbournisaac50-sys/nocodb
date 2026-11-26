@@ -1,0 +1,26 @@
+# Render Blueprint: deploys QuickDrop (apps/quickdrop) on Render's free plan.
+# Guide: apps/quickdrop/README.md → "Deploy for free on Render".
+#
+# Free web services sleep when idle and have no persistent disk, so this
+# profile sends files Live (device to device, unlimited, nothing stored) and
+# turns off stored uploads and accounts. Text messages still work.
+services:
+  - type: web
+    name: quickdrop
+    runtime: node
+    plan: free
+    rootDir: apps/quickdrop
+    buildCommand: npm ci --omit=dev --ignore-scripts
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: TRUST_PROXY
+        value: "true"
+      - key: ANON_MAX_GB
+        value: "0"
+      - key: USER_MAX_GB
+        value: "0"
+      - key: ACCOUNTS_ENABLED
+        value: "false"

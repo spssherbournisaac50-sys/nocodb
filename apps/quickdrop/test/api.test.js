@@ -468,3 +468,56 @@ describe('web app', () => {
     assert.equal((await fetch(`${srv.base}/%2e%2e/package.json`)).status, 404);
   });
 });
+
+describe('free-hosting profile (no stored uploads, no accounts)', () => {
+  let free;
+  let freeApi;
+
+  before(async () => {
+    free = await startServer({
+      accountsEnabled: false,
+      limits: {
+        anonymous: { maxBytes: 0, maxHours: 24, maxDownloads: 10 },
+        account: { maxBytes: 0, maxHours: 24, maxDownloads: 10 },
+      },
+    });
+    freeApi = client(free.base);
+  });
+
+  after(() => free.stop());
+
+  test('advertises what the server offers', async () => {
+    const res = await freeApi('GET', '/api/config');
+    assert.equal(res.body.accountsEnabled, false);
+    assert.equal(res.body.signupEnabled, false);
+    assert.equal(res.body.limits.maxBytes, 0);
+  });
+
+  test('accounts are unavailable', async () => {
+    const signup = await freeApi('POST', '/api/auth/signup', { body: { email: 'a@b.co', password: 'password123' } });
+    assert.equal(signup.status, 404);
+    const login = await freeApi('POST', '/api/auth/login', { body: { email: 'a@b.co', password: 'password123' } });
+    assert.equal(login.status, 404);
+  });
+
+  test('files must go Live, text messages still work', async () => {
+    const files = [{ name: 'x', data: randomData(10) }];
+    const upload = await createTransfer(freeApi, { files });
+    assert.equal(upload.res.status, 413);
+    const live = await createTransfer(freeApi, { files, mode: 'direct' });
+    assert.equal(live.res.status, 201);
+    const text = await createTransfer(freeApi, { files: [], text: 'hello' });
+    assert.equal(text.res.status, 201);
+  });
+});
+
+describe('sender reconnects', () => {
+  test('a sender whose transfer no longer exists is told so', async () => {
+    const ws = new WebSocket(`${srv.base.replace('http', 'ws')}/ws`);
+    await new Promise((resolve) => ws.on('open', resolve));
+    const reply = new Promise((resolve) => ws.once('message', (data) => resolve(JSON.parse(data.toString()))));
+    ws.send(JSON.stringify({ t: 'host', id: 'AAAAAAAAAAAAAAAAAAAAAA', token: 'whatever' }));
+    assert.deepEqual(await reply, { t: 'error', code: 'forbidden' });
+    ws.close();
+  });
+});

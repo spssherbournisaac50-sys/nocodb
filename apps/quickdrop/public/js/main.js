@@ -28,7 +28,7 @@ function updateNav(view) {
     else link.removeAttribute('aria-current');
   }
   const account = document.getElementById('nav-account');
-  if (account) account.textContent = app.user ? 'Account' : 'Sign in';
+  if (account) account.textContent = !app.config?.accountsEnabled ? 'History' : app.user ? 'Account' : 'Sign in';
 }
 
 async function refreshUser(user) {

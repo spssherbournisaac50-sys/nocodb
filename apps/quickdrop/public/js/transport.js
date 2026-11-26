@@ -182,7 +182,11 @@ export function connectAsPeer(signal, { iceServers }) {
       else resolve(channel);
     };
 
+    // Called from several events (channel announced, channel open, sender's
+    // decision). Only the first successful call may wrap the channel: a second
+    // RtcChannel would take over dc.onmessage and silently swallow the data.
     const tryDirect = () => {
+      if (settled) return;
       if (decided === 'direct' && dc?.readyState === 'open') finish(new RtcChannel(pc, dc));
     };
 
@@ -211,7 +215,7 @@ export function connectAsPeer(signal, { iceServers }) {
             } catch {
               // ignore
             }
-            finish(new RelayChannel(signal));
+            if (!settled) finish(new RelayChannel(signal));
             return;
           }
           if (data.transport === 'direct') {

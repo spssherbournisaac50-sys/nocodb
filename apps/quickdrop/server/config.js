@@ -46,6 +46,8 @@ export function loadConfig(overrides = {}, env = process.env) {
     // Set when running behind a reverse proxy / load balancer so client IPs and
     // https detection come from X-Forwarded-* headers.
     trustProxy: bool(env.TRUST_PROXY, false),
+    // Optional accounts. Turn off on hosts without a persistent disk.
+    accountsEnabled: bool(env.ACCOUNTS_ENABLED, true),
     signupEnabled: bool(env.SIGNUP_ENABLED, true),
     // Live transfers fall back to relaying encrypted frames through the server
     // when a direct WebRTC connection cannot be established.

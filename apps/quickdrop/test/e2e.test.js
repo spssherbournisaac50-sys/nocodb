@@ -168,3 +168,32 @@ describe('QuickDrop in the browser', () => {
     await page.context().close();
   });
 });
+
+describe('free-hosting profile in the browser', () => {
+  let free;
+  before(async () => {
+    free = await startServer({
+      iceServers: [],
+      accountsEnabled: false,
+      limits: {
+        anonymous: { maxBytes: 0, maxHours: 24, maxDownloads: 10 },
+        account: { maxBytes: 0, maxHours: 24, maxDownloads: 10 },
+      },
+    });
+  });
+  after(() => free?.stop());
+
+  test('only offers Live for files and shows device history instead of sign-in', async () => {
+    const page = await device();
+    await page.goto(`${free.base}/`);
+    await page.setInputFiles('.send-card input[type=file]', [file('a.bin', 1000)]);
+    assert.equal(await page.isVisible('.seg-btn[data-mode=upload]'), false);
+    assert.match(await page.textContent('.mode-desc'), /Device to device/);
+    assert.equal(await page.textContent('#nav-account'), 'History');
+    await page.click('#nav-account');
+    await page.waitForSelector('text=Transfers you sent from this browser');
+    assert.equal(await page.isVisible('.auth-card'), false);
+    assert.deepEqual(page.errors, []);
+    await page.context().close();
+  });
+});

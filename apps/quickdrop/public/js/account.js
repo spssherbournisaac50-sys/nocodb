@@ -20,6 +20,18 @@ export function renderAccount(root, app) {
 
   function render() {
     if (disposed) return;
+    if (!app.config.accountsEnabled) {
+      container.replaceChildren(
+        h(
+          'section',
+          { class: 'hero hero-small' },
+          h('h1', null, 'Your transfers'),
+          h('p', { class: 'lede' }, 'Transfers you sent from this browser. No account needed.'),
+        ),
+        deviceHistory(),
+      );
+      return;
+    }
     container.replaceChildren(
       h(
         'section',

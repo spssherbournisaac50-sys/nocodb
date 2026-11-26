@@ -80,7 +80,8 @@ All settings are environment variables:
 | `DATA_DIR` | `./data` | SQLite database and encrypted chunks |
 | `APP_NAME` | `QuickDrop` | Brand name shown in the UI |
 | `TRUST_PROXY` | `false` | Set `true` behind a reverse proxy, so the real client IP and HTTPS are detected |
-| `ANON_MAX_GB` / `USER_MAX_GB` | `4` / `16` | Upload-mode size limit without / with an account |
+| `ANON_MAX_GB` / `USER_MAX_GB` | `4` / `16` | Upload-mode size limit without / with an account. `0` turns off stored uploads, so files always go Live |
+| `ACCOUNTS_ENABLED` | `true` | Offer optional accounts. Turn off on hosts without a persistent disk |
 | `ANON_MAX_HOURS` / `USER_MAX_HOURS` | `24` / `168` | How long uploads are kept |
 | `ANON_MAX_DOWNLOADS` / `USER_MAX_DOWNLOADS` | `10` / `100` | Max receivers per transfer |
 | `STORAGE_QUOTA_GB` | `50` | Total disk space for active uploads |
@@ -93,7 +94,38 @@ All settings are environment variables:
 | `RATE_CODE_FAILURES_PER_10MIN` | `10` | Wrong code attempts allowed per IP |
 | `RATE_CREATE_PER_HOUR` | `120` | Transfers created per IP per hour |
 
-## Deploy
+## Deploy for free on Render
+
+[Render](https://render.com) runs QuickDrop for free, with HTTPS and an `onrender.com` address included.
+The repository root contains a ready-made [`render.yaml`](../../render.yaml).
+
+1. Sign up at **render.com** with your GitHub account. No credit card is needed.
+2. In the dashboard, choose **New → Blueprint**, connect this repository, and pick the branch that contains QuickDrop.
+3. Click **Apply**. After the first build (a few minutes) your site is live at `https://quickdrop-….onrender.com`.
+
+If the Blueprint option isn't offered, create the service by hand under **New → Web Service**:
+
+| Field | Value |
+|---|---|
+| Branch | the branch with QuickDrop |
+| Root Directory | `apps/quickdrop` |
+| Language | Node |
+| Build Command | `npm ci --omit=dev --ignore-scripts` |
+| Start Command | `npm start` |
+| Instance Type | Free |
+| Environment | `NODE_VERSION=22`, `TRUST_PROXY=true`, `ANON_MAX_GB=0`, `USER_MAX_GB=0`, `ACCOUNTS_ENABLED=false` |
+| Health Check Path (Advanced) | `/healthz` |
+
+**What the free plan means for QuickDrop:**
+
+- **Files go Live** (device to device). There's no size limit, and file data uses none of Render's bandwidth unless the encrypted relay fallback is needed. Text messages still work.
+- **Stored uploads and accounts are off** (`ANON_MAX_GB=0`, `ACCOUNTS_ENABLED=false`). Free services have no persistent disk and are wiped whenever they sleep or restart.
+- **Sleeps after about 15 idle minutes.** The next visitor waits roughly a minute while it wakes up. An open transfer page keeps it awake. A free uptime monitor pinging `/healthz` every 10 minutes avoids the wake-up delay; one service fits in the 750 free hours a month.
+- **Outgoing bandwidth is capped at 5 GB a month** (reported for workspaces since Render's 2026 pricing change). Without a card on file, Render pauses the service instead of charging you. Check Render's pricing page for the current numbers.
+
+When you outgrow this, move to a host with a persistent disk (e.g. a small VPS with the Docker setup below), then turn Upload mode and accounts back on.
+
+## Deploy anywhere else
 
 Any host that runs Docker (or Node 22) **and supports WebSockets** works: a small VPS, Fly.io, Render, Railway and so on.
 You need **HTTPS** and a **persistent disk** mounted at `DATA_DIR` for Upload mode.

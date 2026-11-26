@@ -18,13 +18,19 @@ export class SignalClient {
       }, timeoutMs);
       ws.onopen = () => {
         clearTimeout(timer);
+        // Regular small messages keep idle proxies (and sleeping free hosts) from
+        // closing the connection while someone waits for the other device.
+        this.keepalive = setInterval(() => this.send({ t: 'ping' }), 45_000);
         resolve(this);
       };
       ws.onerror = () => {
         clearTimeout(timer);
         reject(new Error('Could not reach the server'));
       };
-      ws.onclose = (event) => this.#emit('close', event);
+      ws.onclose = (event) => {
+        clearInterval(this.keepalive);
+        this.#emit('close', event);
+      };
       ws.onmessage = (event) => {
         if (typeof event.data !== 'string') {
           this.binaryListener?.(event.data);
@@ -86,6 +92,7 @@ export class SignalClient {
   }
 
   close() {
+    clearInterval(this.keepalive);
     this.listeners.clear();
     this.binaryListener = null;
     try {
